@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ตรวจสอบพื้นที่จัดส่งพิเศษ | Flash Express - ร้านค้าสวัสดิการ กรมส่งเสริมการเกษตร</title>
+
+  <!-- Google Fonts: IBM Plex Sans Thai (ภาษาไทยอ่านง่าย ทันสมัย) + JetBrains Mono (ตัวเลขรหัสไปรษณีย์คมชัด) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"IBM Plex Sans Thai"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            surface: '#F3F5F8',
+            flash: {
+              yellow: '#FFD400',
+              yellowHover: '#F2C700',
+              dark: '#111827',
+            },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-[#F3F5F8] text-gray-900 font-sans antialiased h-[100dvh] overflow-hidden flex flex-col selection:bg-[#FFD400] selection:text-gray-900">
+
+  <!-- Toast Notification Container (มุมขวาล่าง แทน alert()) -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 pointer-events-none flex flex-col gap-2 max-w-xs w-[calc(100%-2rem)] sm:w-auto"></div>
+
+  <!-- =========================================================================
+       HEADER กะทัดรัด (สูง ~56px บนเดสก์ท็อป)
+       ========================================================================= -->
+  <header class="shrink-0 bg-[#111827] text-white border-b-2 border-[#FFD400] shadow-sm z-20">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2 sm:gap-4">
+      <!-- ด้านซ้าย: โลโก้ + ชื่อระบบ -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="shrink-0 w-9 h-9 rounded-xl bg-[#FFD400] text-[#111827] flex items-center justify-center shadow-sm">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+          </svg>
+        </div>
+        <div class="min-w-0 leading-tight">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-bold tracking-tight text-white truncate">
+              ตรวจสอบพื้นที่จัดส่งพิเศษ
+            </h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#FFD400]/15 text-[#FFD400] border border-[#FFD400]/30 shrink-0">
+              Flash Express
+            </span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-gray-400 truncate">
+            ร้านค้าสวัสดิการ กรมส่งเสริมการเกษตร
+          </p>
+        </div>
+      </div>
+
+      <!-- ด้านขวา: แถบสรุปสถิติสั้นๆ + Segmented Control (เดสก์ท็อป) -->
+      <div class="flex items-center gap-3 shrink-0">
+        <!-- แถบสถิติสั้นๆ (แสดงบนหน้าจอ xl ขึ้นไป) -->
+        <div class="hidden xl:flex items-center gap-2 bg-gray-800/90 border border-gray-700/80 rounded-xl px-3 py-1.5 text-xs">
+          <span class="text-gray-300">พื้นที่ห่างไกล <strong id="hdr-remote-count" class="font-mono text-[#FFD400] font-semibold">55</strong></span>
+          <span class="text-gray-600">|</span>
+          <span class="text-gray-300">ท่องเที่ยวพิเศษ <strong id="hdr-tourist-count" class="font-mono text-red-400 font-semibold">39</strong></span>
+          <span class="text-gray-600">|</span>
+          <span class="inline-flex items-center gap-1 font-semibold text-white bg-red-600/90 px-2 py-0.5 rounded-lg text-[11px]">
+            คิดเพิ่ม <span class="font-mono">+50฿</span>
+          </span>
+        </div>
+
+        <!-- ป้ายสรุปย่อสำหรับแท็บเล็ต/มือถือ -->
+        <div class="flex xl:hidden items-center gap-1.5 text-[11px] font-semibold bg-red-600/90 text-white px-2.5 py-1 rounded-lg">
+          <span class="hidden sm:inline">พื้นที่พิเศษ</span>
+          <span class="font-mono">+50฿</span>
+        </div>
+
+        <!-- Segmented Control สลับโหมดบนเดสก์ท็อป (lg+) -->
+        <div class="hidden lg:inline-flex items-center bg-gray-800 p-1 rounded-xl border border-gray-700" role="tablist" aria-label="สลับโหมดการตรวจสอบ">
+          <button
+            id="desk-tab-single"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-[#FFD400] text-[#111827] shadow-sm cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span>ตรวจสอบด่วน</span>
+          </button>
+          <button
+            id="desk-tab-bulk"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-300 hover:text-white cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span>ตรวจหลายรายการ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- แถบ Segmented Control สำหรับมือถือและแท็บเล็ต (< lg) เพื่อให้จบใน 1 หน้าจอ -->
+    <div class="lg:hidden bg-gray-900/95 border-t border-gray-800 px-3 py-1.5">
+      <div class="grid grid-cols-3 gap-1.5 bg-gray-800 p-1 rounded-xl" role="tablist" aria-label="สลับมุมมองบนมือถือ">
+        <button
+          id="mob-tab-single"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          class="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all bg-[#FFD400] text-[#111827] shadow-sm cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span class="truncate">ตรวจด่วน</span>
+        </button>
+        <button
+          id="mob-tab-bulk"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          class="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all text-gray-300 hover:text-white cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span class="truncate">หลายรายการ</span>
+        </button>
+        <button
+          id="mob-tab-directory"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          class="flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all text-gray-300 hover:text-white cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+          <span class="truncate">รายชื่อ (<span id="mob-dir-count" class="font-mono">92</span>)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       พื้นที่ทำงานหลักแบบ 2 คอลัมน์เต็มความสูงหน้าจอที่เหลือ (flex-1 min-h-0)
+       ========================================================================= -->
+  <main class="flex-1 min-h-0 w-full max-w-[1600px] mx-auto p-3 sm:p-4 overflow-hidden">
+    <div class="h-full grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 min-h-0">
+
+      <!-- =====================================================================
+           คอลัมน์ซ้าย (5/12): โซนค้นหาและแสดงผลทันที (Instant Checker Stage)
+           ===================================================================== -->
+      <section
+        id="left-column"
+        class="lg:col-span-5 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-gray-200/90 overflow-hidden"
+      >
+        <!-- ===================================================================
+             โหมด 1: ตรวจสอบด่วน (Single Check)
+             =================================================================== -->
+        <div id="mode-single" class="flex flex-col h-full min-h-0">
+          <!-- ส่วนบน: ช่องค้นหาขนาดใหญ่ + ปุ่มวาง/ล้าง + ตัวอย่างด่วน -->
+          <div class="shrink-0 p-3.5 sm:p-4 border-b border-gray-100 bg-gradient-to-b from-gray-50/90 to-white space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <label for="single-search-input" class="text-xs sm:text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#FFD400] ring-2 ring-[#FFD400]/30"></span>
+                ค้นหารหัสไปรษณีย์ / อำเภอ / จังหวัด / วางที่อยู่ลูกค้า
+              </label>
+              <span class="hidden sm:inline-flex items-center gap-1 text-[11px] text-gray-400">
+                กด <kbd class="px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 font-mono text-[10px] text-gray-600">/</kbd> ค้นหา
+                <kbd class="px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 font-mono text-[10px] text-gray-600">Esc</kbd> ล้าง
+              </span>
+            </div>
+
+            <!-- ช่องค้นหาพร้อมปุ่มลัด วาง และ ล้าง -->
+            <div class="relative flex items-center">
+              <div class="pointer-events-none absolute left-3.5 text-gray-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                id="single-search-input"
+                type="text"
+                autocomplete="off"
+                autofocus
+                placeholder="เช่น 84320, เกาะสมุย หรือวางที่อยู่เต็มๆ..."
+                class="w-full pl-10 pr-[118px] py-3 text-sm sm:text-base bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 shadow-inner focus:outline-none focus:border-[#FFD400] focus:ring-4 focus:ring-[#FFD400]/25 transition"
+              />
+              <!-- ปุ่มลัดด้านขวาในช่องค้นหา -->
+              <div class="absolute right-1.5 flex items-center gap-1">
+                <button
+                  id="btn-paste-clipboard"
+                  type="button"
+                  title="วางข้อความจากคลิปบอร์ด"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-[#FFD400] text-gray-700 hover:text-[#111827] transition cursor-pointer"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <span>วาง</span>
+                </button>
+                <button
+                  id="btn-clear-single"
+                  type="button"
+                  title="ล้างข้อความ (Esc)"
+                  class="hidden items-center justify-center w-8 h-8 rounded-lg bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 transition cursor-pointer"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- แถบปุ่มตัวอย่างด่วนขนาดกะทัดรัด -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
+              <span class="text-[11px] font-medium text-gray-400 shrink-0">ลองเช็ค:</span>
+              <button type="button" data-quick="95110" class="quick-chip shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-100 hover:bg-[#111827] hover:text-[#FFD400] text-gray-700 transition cursor-pointer">
+                <span class="font-mono font-semibold">95110</span> เบตง
+              </button>
+              <button type="button" data-quick="84320" class="quick-chip shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-100 hover:bg-red-600 hover:text-white text-gray-700 transition cursor-pointer">
+                <span class="font-mono font-semibold">84320</span> เกาะสมุย
+              </button>
+              <button type="button" data-quick="58130" class="quick-chip shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-100 hover:bg-[#111827] hover:text-[#FFD400] text-gray-700 transition cursor-pointer">
+                <span class="font-mono font-semibold">58130</span> ปาย
+              </button>
+              <button type="button" data-quick="82110" class="quick-chip shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-100 hover:bg-orange-600 hover:text-white text-gray-700 transition cursor-pointer">
+                <span class="font-mono font-semibold">82110</span> ตะกั่วป่า
+              </button>
+              <button type="button" data-quick="10110" class="quick-chip shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200/80 transition cursor-pointer">
+                <span class="font-mono font-semibold">10110</span> กทม.
+              </button>
+            </div>
+          </div>
+
+          <!-- ส่วนกลาง/ล่าง: Result Hero Card (เลื่อนภายในได้หากผลลัพธ์ยาว) -->
+          <div
+            id="single-result-stage"
+            class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300/80"
+          >
+            <!-- เนื้อหาถูกสร้างโดย JavaScript ตามสถานะ (พร้อมใช้ / คิดเพิ่ม / ปกติ / กำลังพิมพ์) -->
+          </div>
+        </div>
+
+        <!-- ===================================================================
+             โหมด 2: ตรวจสอบหลายรายการพร้อมกัน (Bulk Check - อยู่ในคอลัมน์ซ้าย)
+             =================================================================== -->
+        <div id="mode-bulk" class="hidden flex-col h-full min-h-0">
+          <!-- ส่วนกรอกรายการ -->
+          <div class="shrink-0 p-3.5 sm:p-4 border-b border-gray-100 bg-gradient-to-b from-gray-50/90 to-white space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <label for="bulk-textarea" class="text-xs sm:text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#FFD400] ring-2 ring-[#FFD400]/30"></span>
+                วางหลายรหัสไปรษณีย์ หรือหลายที่อยู่ (บรรทัดละ 1 รายการ)
+              </label>
+              <button
+                id="bulk-sample-btn"
+                type="button"
+                class="text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-[#FFD400] hover:text-[#111827] px-2.5 py-1 rounded-lg transition cursor-pointer shrink-0"
+              >
+                + ทดสอบตัวอย่าง
+              </button>
+            </div>
+
+            <textarea
+              id="bulk-textarea"
+              rows="4"
+              placeholder="ตัวอย่าง:&#10;10110&#10;95110&#10;84320&#10;คุณสมชาย อ.เกาะยาว จ.พังงา 82160 โทร 081-234-5678"
+              class="w-full p-3 text-xs sm:text-sm bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#FFD400] focus:ring-4 focus:ring-[#FFD400]/20 transition resize-none [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300"
+            ></textarea>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                id="bulk-check-btn"
+                type="button"
+                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#FFD400] hover:bg-[#F2C700] text-[#111827] font-bold text-xs sm:text-sm shadow-sm transition cursor-pointer"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>ตรวจสอบทั้งหมด</span>
+              </button>
+
+              <button
+                id="bulk-clear-btn"
+                type="button"
+                class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs sm:text-sm transition cursor-pointer"
+              >
+                ล้าง
+              </button>
+
+              <button
+                id="bulk-copy-btn"
+                type="button"
+                class="hidden ml-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#111827] hover:bg-gray-800 text-[#FFD400] font-semibold text-xs transition shadow-sm cursor-pointer"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>คัดลอกสรุปผล</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- แถบสรุปผลทันที 4 ช่อง -->
+          <div id="bulk-summary-bar" class="hidden shrink-0 px-3.5 sm:px-4 pt-3 pb-2 bg-gray-50/70 border-b border-gray-100">
+            <div id="bulk-summary-grid" class="grid grid-cols-4 gap-2"></div>
+          </div>
+
+          <!-- รายการผลลัพธ์แบบเลื่อนดูภายในกล่อง -->
+          <div
+            id="bulk-list-container"
+            class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-4 space-y-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300/80"
+          >
+            <div class="h-full flex flex-col items-center justify-center text-center py-6 px-4">
+              <div class="w-11 h-11 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mb-2.5">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <p class="text-sm font-semibold text-gray-700">วางรายการด้านบนเพื่อตรวจหลายออเดอร์พร้อมกัน</p>
+              <p class="text-xs text-gray-500 mt-1 max-w-xs">
+                รองรับทั้งรหัสไปรษณีย์ ชื่อพื้นที่ หรือที่อยู่เต็มที่มีเบอร์โทร ระบบจะคัดแยกพื้นที่ปกติและคำนวณยอดค่าส่งเพิ่มให้ทันที
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           คอลัมน์ขวา (7/12): ตารางรายชื่อพื้นที่พิเศษทั้งหมด (Interactive Reference Directory)
+           ===================================================================== -->
+      <section
+        id="right-column"
+        class="hidden lg:flex lg:col-span-7 flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-gray-200/90 overflow-hidden"
+      >
+        <!-- แถบตัวกรองด้านบนตาราง -->
+        <div class="shrink-0 p-3 sm:px-4 sm:py-3 border-b border-gray-200 bg-white space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <!-- แท็บกรองประเภทพื้นที่ -->
+            <div class="inline-flex items-center bg-gray-100 p-1 rounded-xl gap-0.5" role="group" aria-label="กรองตามประเภทพื้นที่">
+              <button
+                type="button"
+                data-filter-type="all"
+                class="dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-[#111827] text-[#FFD400] shadow-sm cursor-pointer"
+              >
+                ทั้งหมด <span id="dir-cnt-all" class="font-mono opacity-90">(92)</span>
+              </button>
+              <button
+                type="button"
+                data-filter-type="remote"
+                class="dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-600 hover:text-gray-900 cursor-pointer"
+              >
+                พื้นที่ห่างไกล <span id="dir-cnt-remote" class="font-mono opacity-80">(55)</span>
+              </button>
+              <button
+                type="button"
+                data-filter-type="tourist"
+                class="dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-600 hover:text-red-700 cursor-pointer"
+              >
+                ท่องเที่ยวพิเศษ <span id="dir-cnt-tourist" class="font-mono opacity-80">(39)</span>
+              </button>
+            </div>
+
+            <!-- Dropdown จังหวัด + ตัวนับจำนวนรายการ -->
+            <div class="flex items-center gap-2 ml-auto">
+              <select
+                id="dir-province-select"
+                aria-label="กรองตามจังหวัด"
+                class="px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-medium text-gray-800 focus:outline-none focus:border-[#FFD400] focus:ring-2 focus:ring-[#FFD400]/25 cursor-pointer max-w-[165px]"
+              >
+                <option value="all">ทุกจังหวัด (ก-ฮ)</option>
+              </select>
+
+              <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gray-100 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                พบ <strong id="dir-showing-count" class="font-mono text-gray-900">92</strong>
+              </span>
+            </div>
+          </div>
+
+          <!-- แถบสถานะการเชื่อมโยง 2 ทางกับช่องค้นหาด้านซ้าย (แสดงเมื่อมีการพิมพ์ค้นหา) -->
+          <div id="dir-sync-banner" class="hidden items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/80 text-xs">
+            <div class="flex items-center gap-1.5 text-amber-900 min-w-0">
+              <svg class="w-3.5 h-3.5 text-amber-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span id="dir-sync-text" class="truncate">กำลังกรองตามคำค้นหา</span>
+            </div>
+            <button
+              id="dir-show-all-btn"
+              type="button"
+              class="shrink-0 px-2.5 py-0.5 rounded-lg bg-white hover:bg-[#111827] hover:text-[#FFD400] text-amber-900 border border-amber-300 font-semibold text-[11px] transition cursor-pointer"
+            >
+              แสดงทั้งหมด
+            </button>
+          </div>
+        </div>
+
+        <!-- พื้นที่ตารางเลื่อนดูข้อมูลได้เฉพาะภายใน (Internal Scroll + Sticky Header) -->
+        <div class="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300/80">
+          <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 shadow-[0_1px_0_0_rgba(229,231,235,1)]">
+              <tr class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                <th class="py-2.5 pl-4 pr-2 w-24">รหัส ปณ.</th>
+                <th class="py-2.5 px-2">อำเภอ / จังหวัด</th>
+                <th class="py-2.5 px-2 hidden sm:table-cell">ประเภทพื้นที่</th>
+                <th class="py-2.5 px-2 hidden md:table-cell">ภาค / ระยะเวลา</th>
+                <th class="py-2.5 pl-2 pr-4 text-right w-20">ค่าเพิ่ม</th>
+              </tr>
+            </thead>
+            <tbody id="dir-table-body" class="divide-y divide-gray-100 text-xs sm:text-sm"></tbody>
+          </table>
+
+          <!-- กรณีไม่พบรายการในตาราง -->
+          <div id="dir-empty-state" class="hidden py-14 px-4 text-center">
+            <p class="text-sm font-semibold text-gray-600">ไม่พบรายการที่ตรงกับเงื่อนไขตัวกรอง</p>
+            <button
+              id="dir-reset-filters-btn"
+              type="button"
+              class="mt-3 px-4 py-1.5 rounded-xl bg-[#111827] text-[#FFD400] text-xs font-semibold hover:bg-gray-800 transition cursor-pointer"
+            >
+              รีเซ็ตตัวกรองทั้งหมด
+            </button>
+          </div>
+        </div>
+
+        <!-- แถบหมายเหตุด้านล่างสุดของตาราง (Compact Footer Strip) -->
+        <div class="shrink-0 px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2 text-[11px] text-gray-500">
+          <p class="truncate" title="*ระยะเวลาจัดส่งโดยประมาณจากต้นทางทุกพื้นที่ถึงปลายทางพื้นที่ท่องเที่ยวพิเศษ (พื้นที่อุตสาหกรรมท่องเที่ยวที่เป็นหมู่เกาะ) | ข้อมูลอ้างอิง Flash Express">
+            *ระยะเวลาจัดส่งโดยประมาณจากต้นทางทุกพื้นที่ถึงปลายทางพื้นที่ท่องเที่ยวพิเศษ (พื้นที่อุตสาหกรรมท่องเที่ยวที่เป็นหมู่เกาะ) | ข้อมูลอ้างอิง Flash Express
+          </p>
+          <span class="hidden sm:inline-block shrink-0 text-gray-400">คลิกแถวเพื่อดูและคัดลอกข้อความ</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       JavaScript Application Logic & Complete Dataset
+       ========================================================================= -->
+  <script>
+    /**
+     * =========================================================================
+     * 1. ฐานข้อมูลพื้นที่จัดส่งพิเศษ (ครบถ้วนและถูกต้อง 100%)
+     * =========================================================================
+     */
+
+    // A. พื้นที่ห่างไกล (55 รายการ — ค่าบริการขนส่งเพิ่ม 50 บาท)
+    const RAW_REMOTE_AREAS = [
+      // ภาคกลาง (2 รายการ)
+      { zip: '71180', district: 'ทองผาภูมิ', province: 'กาญจนบุรี', region: 'ภาคกลาง' },
+      { zip: '71240', district: 'สังขละบุรี', province: 'กาญจนบุรี', region: 'ภาคกลาง' },
+
+      // ภาคเหนือ (17 รายการ)
+      { zip: '50260', district: 'ดอยเต่า', province: 'เชียงใหม่', region: 'ภาคเหนือ' },
+      { zip: '50270', district: 'แม่แจ่ม', province: 'เชียงใหม่', region: 'ภาคเหนือ' },
+      { zip: '50310', district: 'อมก๋อย', province: 'เชียงใหม่', region: 'ภาคเหนือ' },
+      { zip: '50350', district: 'เวียงแหง', province: 'เชียงใหม่', region: 'ภาคเหนือ' },
+      { zip: '58130', district: 'กัลยาณิวัฒนา', province: 'เชียงใหม่', region: 'ภาคเหนือ' },
+      { zip: '63150', district: 'ท่าสองยาง', province: 'ตาก', region: 'ภาคเหนือ' },
+      { zip: '63170', district: 'อุ้มผาง', province: 'ตาก', region: 'ภาคเหนือ' },
+      { zip: '55130', district: 'เฉลิมพระเกียรติ', province: 'น่าน', region: 'ภาคเหนือ' },
+      { zip: '55130', district: 'ทุ่งช้าง', province: 'น่าน', region: 'ภาคเหนือ' },
+      { zip: '55220', district: 'บ่อเกลือ', province: 'น่าน', region: 'ภาคเหนือ' },
+      { zip: '67260', district: 'น้ำหนาว', province: 'เพชรบูรณ์', region: 'ภาคเหนือ' },
+      { zip: '58110', district: 'แม่สะเรียง', province: 'แม่ฮ่องสอน', region: 'ภาคเหนือ' },
+      { zip: '58110', district: 'แม่เมย', province: 'แม่ฮ่องสอน', region: 'ภาคเหนือ', aliases: ['สบเมย'] },
+      { zip: '58120', district: 'แม่ลาน้อย', province: 'แม่ฮ่องสอน', region: 'ภาคเหนือ' },
+      { zip: '58130', district: 'ปาย', province: 'แม่ฮ่องสอน', region: 'ภาคเหนือ' },
+      { zip: '58140', district: 'ขุนยวม', province: 'แม่ฮ่องสอน', region: 'ภาคเหนือ' },
+      { zip: '58150', district: 'ปางมะผ้า', province: 'แม่ฮ่องสอน', region: 'ภาคเหนือ' },
+
+      // ภาคใต้ (36 รายการ)
+      { zip: '82150', district: 'คุระบุรี', province: 'พังงา', region: 'ภาคใต้' },
+      { zip: '82160', district: 'เกาะยาว', province: 'พังงา', region: 'ภาคใต้' },
+      { zip: '82110', district: 'ตะกั่วป่า', province: 'พังงา', region: 'ภาคใต้' },
+      { zip: '94000', district: 'เมืองปัตตานี', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94110', district: 'สายบุรี', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94120', district: 'โคกโพธิ์', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94130', district: 'ปะนาเระ', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94140', district: 'มายอ, ทุ่งยางแดง', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94150', district: 'ยะหริ่ง', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94160', district: 'ยะรัง', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94170', district: 'หนองจิก', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94180', district: 'โคกโพธิ์, แม่ลาน', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94190', district: 'มายอ, ปะนาเระ', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94190', district: 'สายบุรี, ยะหริ่ง', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94220', district: 'ไม้แก่น', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '94230', district: 'กะพ้อ', province: 'ปัตตานี', region: 'ภาคใต้' },
+      { zip: '95000', district: 'กรงปินัง, เมืองยะลา', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95110', district: 'เบตง', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95120', district: 'กาบัง, ยะหา', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95130', district: 'บันนังสตา', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95140', district: 'รามัน', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95150', district: 'ธารโต', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95160', district: 'เมืองยะลา', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '95170', district: 'ธารโต', province: 'ยะลา', region: 'ภาคใต้' },
+      { zip: '96000', district: 'เมืองนราธิวาส', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96110', district: 'ตากใบ', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96120', district: 'สุไหงโก-ลก', province: 'นราธิวาส', region: 'ภาคใต้', aliases: ['สุไหงโกลก'] },
+      { zip: '96130', district: 'เจาะไอร้อง, ระแงะ', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96140', district: 'สุไหงปาดี', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96150', district: 'รือเสาะ', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96160', district: 'แว้ง', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96170', district: 'บาเจาะ', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96180', district: 'ยี่งอ', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96190', district: 'สุคิริน', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96210', district: 'ศรีสาคร', province: 'นราธิวาส', region: 'ภาคใต้' },
+      { zip: '96220', district: 'จะแนะ, ระแงะ', province: 'นราธิวาส', region: 'ภาคใต้' }
+    ];
+
+    // B. พื้นที่ท่องเที่ยวพิเศษ (39 รายการ — เพิ่มค่าส่ง 50 บาท ทุกคำสั่งซื้อ)
+    const RAW_TOURIST_AREAS = [
+      { zip: '20120', district: 'เกาะสีชัง', province: 'ชลบุรี', deliveryTime: '4-5 วัน' },
+      { zip: '20150', district: 'บางละมุง', province: 'ชลบุรี', deliveryTime: '3-5 วัน' },
+      { zip: '20260', district: 'บางละมุง', province: 'ชลบุรี', deliveryTime: '3-5 วัน' },
+      { zip: '21160', district: 'เมืองระยอง', province: 'ระยอง', deliveryTime: '3-5 วัน' },
+      { zip: '23000', district: 'เกาะกูด', province: 'ตราด', deliveryTime: '3-5 วัน' },
+      { zip: '23170', district: 'เกาะช้าง', province: 'ตราด', deliveryTime: '3-5 วัน' },
+      { zip: '81000', district: 'เมืองกระบี่', province: 'กระบี่', deliveryTime: '3-5 วัน' },
+      { zip: '81120', district: 'เกาะลันตา', province: 'กระบี่', deliveryTime: '3-5 วัน' },
+      { zip: '81130', district: 'เหนือคลอง', province: 'กระบี่', deliveryTime: '3-5 วัน' },
+      { zip: '81150', district: 'เกาะลันตา', province: 'กระบี่', deliveryTime: '3-5 วัน' },
+      { zip: '81180', district: 'เมืองกระบี่', province: 'กระบี่', deliveryTime: '3-5 วัน' },
+      { zip: '81210', district: 'เมืองกระบี่', province: 'กระบี่', deliveryTime: '3-5 วัน' },
+      { zip: '82000', district: 'เมืองพังงา', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '82110', district: 'ตะกั่วป่า', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '82130', district: 'ตะกั่วทุ่ง', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '82140', district: 'ตะกั่วทุ่ง', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '82160', district: 'เกาะยาว', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '82190', district: 'ตะกั่วป่า', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '82220', district: 'ตะกั่วป่า', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '83000', district: 'เมืองภูเก็ต', province: 'ภูเก็ต', deliveryTime: '3-5 วัน' },
+      { zip: '83000', district: 'เกาะยาว', province: 'พังงา', deliveryTime: '3-5 วัน' },
+      { zip: '83100', district: 'เมืองภูเก็ต', province: 'ภูเก็ต', deliveryTime: '3-5 วัน' },
+      { zip: '83110', district: 'ถลาง', province: 'ภูเก็ต', deliveryTime: '3-5 วัน', aliases: ['กลาง'] },
+      { zip: '83120', district: 'กะทู้', province: 'ภูเก็ต', deliveryTime: '3-5 วัน' },
+      { zip: '83130', district: 'เมืองภูเก็ต', province: 'ภูเก็ต', deliveryTime: '3-5 วัน' },
+      { zip: '83150', district: 'กะทู้', province: 'ภูเก็ต', deliveryTime: '3-5 วัน' },
+      { zip: '84140', district: 'เกาะสมุย', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84220', district: 'เกาะสมุย', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84220', district: 'ดอนสัก', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84280', district: 'เกาะพะงัน', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84310', district: 'เกาะสมุย', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84320', district: 'เกาะสมุย', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84330', district: 'เกาะสมุย', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '84360', district: 'เกาะพะงัน', province: 'สุราษฎร์ธานี', deliveryTime: '3-5 วัน' },
+      { zip: '85000', district: 'เมืองระนอง', province: 'ระนอง', deliveryTime: '3-5 วัน' },
+      { zip: '91000', district: 'เมืองสตูล', province: 'สตูล', deliveryTime: '3-5 วัน' },
+      { zip: '91110', district: 'เมืองสตูล', province: 'สตูล', deliveryTime: '3-5 วัน' },
+      { zip: '92110', district: 'กันตัง', province: 'ตรัง', deliveryTime: '3-5 วัน' },
+      { zip: '92120', district: 'ปะเหลียน', province: 'ตรัง', deliveryTime: '3-5 วัน' }
+    ];
+
+    /**
+     * รวมฐานข้อมูลทั้ง 2 หมวดอย่างชาญฉลาด (รวมแล้วได้ 92 รายการที่ไม่ซ้ำซ้อน)
+     * พื้นที่ 82110 ตะกั่วป่า พังงา และ 82160 เกาะยาว พังงา จะมีทั้ง remote: true และ tourist: true
+     */
+    function buildMergedAreas() {
+      const map = new Map();
+
+      RAW_REMOTE_AREAS.forEach((item) => {
+        const id = `${item.zip}|${item.district}|${item.province}`;
+        map.set(id, {
+          id,
+          zip: item.zip,
+          district: item.district,
+          province: item.province,
+          remote: true,
+          tourist: false,
+          region: item.region,
+          deliveryTime: null,
+          aliases: item.aliases ? [...item.aliases] : [],
+          surcharge: 50,
+        });
+      });
+
+      RAW_TOURIST_AREAS.forEach((item) => {
+        const id = `${item.zip}|${item.district}|${item.province}`;
+        if (map.has(id)) {
+          const existing = map.get(id);
+          existing.tourist = true;
+          existing.deliveryTime = item.deliveryTime;
+          if (item.aliases) {
+            existing.aliases = Array.from(new Set([...existing.aliases, ...item.aliases]));
+          }
+        } else {
+          map.set(id, {
+            id,
+            zip: item.zip,
+            district: item.district,
+            province: item.province,
+            remote: false,
+            tourist: true,
+            region: null,
+            deliveryTime: item.deliveryTime,
+            aliases: item.aliases ? [...item.aliases] : [],
+            surcharge: 50,
+          });
+        }
+      });
+
+      return Array.from(map.values()).sort((a, b) => {
+        if (a.zip !== b.zip) return a.zip.localeCompare(b.zip);
+        if (a.province !== b.province) return a.province.localeCompare(b.province, 'th');
+        return a.district.localeCompare(b.district, 'th');
+      });
+    }
+
+    const ALL_AREAS = buildMergedAreas();
+    const ALL_PROVINCES = Array.from(new Set(ALL_AREAS.map((a) => a.province))).sort((a, b) =>
+      a.localeCompare(b, 'th')
+    );
+
+    /**
+     * =========================================================================
+     * 2. สถานะของแอปพลิเคชัน (Application State)
+     * =========================================================================
+     */
+    const state = {
+      // โหมดปัจจุบันบนเดสก์ท็อป ('single' | 'bulk') และบนมือถือ ('single' | 'bulk' | 'directory')
+      desktopMode: 'single',
+      mobileTab: 'single',
+
+      // คำค้นหาและรายการที่ถูกเลือกจากการคลิกตาราง
+      searchQuery: '',
+      selectedAreaId: null,
+
+      // ตัวกรองตารางด้านขวา
+      dirType: 'all',          // 'all' | 'remote' | 'tourist'
+      dirProvince: 'all',
+      dirSyncOverride: false,  // true เมื่อผู้ใช้กดปุ่ม "แสดงทั้งหมด" เพื่อดูตารางเต็มขณะมีคำค้นหา
+
+      // ประวัติการค้นหาล่าสุด (สูงสุด 8 รายการ)
+      recentHistory: [],
+
+      // ข้อความสรุปผล Bulk ล่าสุดสำหรับคัดลอก
+      latestBulkSummaryText: '',
+    };
+
+    const HISTORY_STORAGE_KEY = 'flash_doae_recent_checks_v2';
+
+    /**
+     * =========================================================================
+     * 3. ยูทิลิตี้ช่วยวิเคราะห์ข้อความ คัดลอก และแจ้งเตือน (Helpers)
+     * =========================================================================
+     */
+
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // แปลงตัวเลขไทย (๐-๙) เป็นอารบิก (0-9)
+    function normalizeThaiDigits(text) {
+      const thaiNums = '๐๑๒๓๔๕๖๗๘๙';
+      return String(text || '').replace(/[๐-๙]/g, (ch) => String(thaiNums.indexOf(ch)));
+    }
+
+    // ล้างคำนำหน้าทางภูมิศาสตร์สำหรับการค้นหาชื่ออำเภอ/จังหวัด
+    function cleanLocationText(text) {
+      return text
+        .replace(/(?:อำเภอ|อ\.|จังหวัด|จ\.|เขต|แขวง|ตำบล|ต\.|หมู่|ม\.)\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    /**
+     * ดึงรหัสไปรษณีย์ 5 หลักออกจากที่อยู่เต็มของลูกค้าอย่างแม่นยำ โดยไม่สับสนกับเบอร์โทรศัพท์
+     * ขั้นตอน:
+     * 1) กรองเบอร์โทรศัพท์ไทย (ทั้งแบบมีขีด/เว้นวรรค เช่น 081-234-5678, 02 123 4567, +66 81 234 5678, 0812345678)
+     * 2) กรองเลขที่มีเครื่องหมาย / (เช่น บ้านเลขที่ 123/45678) และเลขยาว 6+ หลัก
+     * 3) จับเลข 5 หลักที่ขึ้นต้นด้วย 1-9 (รหัสไปรษณีย์ไทย 10000-96999)
+     * 4) หากพบหลายชุด ให้เลือกรหัสที่ตรงกับพื้นที่พิเศษก่อน หรือชุดสุดท้ายในข้อความ (ตำแหน่งมาตรฐานของรหัสไปรษณีย์)
+     */
+    function extractZipFromAddress(rawText) {
+      const normalized = normalizeThaiDigits(rawText).trim();
+      let stripped = normalized;
+      let ignoredPhone = false;
+
+      // 1) ลบเบอร์โทรศัพท์ที่ขึ้นต้นด้วย +66 หรือ 0 (ยาว 9-10 หลัก รวมขีดหรือช่องว่าง)
+      const phonePattern = /(?:\+66[\s\-]?|(?<!\d)0)(?:[689]\d[\s\-]?\d{3}[\s\-]?\d{4}|[2-7]\d?[\s\-]?\d{3}[\s\-]?\d{3,4}|[2-9]\d{7,8})(?!\d)/g;
+      stripped = stripped.replace(phonePattern, () => {
+        ignoredPhone = true;
+        return ' ';
+      });
+
+      // 2) ลบข้อความหลังคำว่า "โทร" หรือ "Tel" ที่เป็นชุดตัวเลขและขีด
+      const labeledPhonePattern = /(?:โทร\.?|tel\.?|phone|เบอร์)\s*:?\s*[\d\s\-()+]{8,16}/gi;
+      stripped = stripped.replace(labeledPhonePattern, () => {
+        ignoredPhone = true;
+        return ' ';
+      });
+
+      // 3) ค้นหารหัสไปรษณีย์ 5 หลักที่ขึ้นต้นด้วย 1-9 และไม่ติดตัวเลขอื่นหรือเครื่องหมาย /
+      const zipCandidates = [];
+      const zipRegex = /(?<![\d/])([1-9]\d{4})(?![\d/])/g;
+      let match;
+      while ((match = zipRegex.exec(stripped)) !== null) {
+        zipCandidates.push(match[1]);
+      }
+
+      if (zipCandidates.length === 0) {
+        return { zip: null, ignoredPhone, cleanedAddress: stripped };
+      }
+
+      // หากมีหลายชุด เลือกชุดที่ตรงกับฐานข้อมูลพื้นที่พิเศษก่อน ไม่เช่นนั้นเลือกชุดสุดท้าย
+      const specialCandidate = zipCandidates.find((z) => ALL_AREAS.some((a) => a.zip === z));
+      const chosenZip = specialCandidate || zipCandidates[zipCandidates.length - 1];
+
+      return { zip: chosenZip, ignoredPhone, cleanedAddress: stripped };
+    }
+
+    /**
+     * ฟังก์ชันวิเคราะห์และค้นหาพื้นที่หลัก (Smart Search Engine)
+     * รองรับ: รหัส 5 หลัก, เลขบางส่วน, ชื่ออำเภอ, ชื่อจังหวัด, คำพ้อง, และที่อยู่เต็มพร้อมเบอร์โทร
+     */
+    function analyzeQuery(rawQuery) {
+      const normalized = normalizeThaiDigits(rawQuery || '').trim();
+      if (!normalized) {
+        return {
+          status: 'idle',
+          raw: '',
+          matches: [],
+          extractedZip: null,
+          ignoredPhone: false,
+          isFullAddress: false,
+          matchedByProvinceOnly: false,
+        };
+      }
+
+      const isDigitsOnly = /^\d+$/.test(normalized);
+
+      // กรณีพิมพ์เฉพาะตัวเลขล้วน
+      if (isDigitsOnly) {
+        if (normalized.length === 5) {
+          const matches = ALL_AREAS.filter((a) => a.zip === normalized);
+          return {
+            status: matches.length > 0 ? 'surcharge' : 'normal',
+            raw: normalized,
+            matches,
+            extractedZip: normalized,
+            ignoredPhone: false,
+            isFullAddress: false,
+            matchedByProvinceOnly: false,
+          };
+        }
+
+        // พิมพ์ตัวเลขยังไม่ครบ 5 หลัก หรือเกิน 5 หลัก
+        const prefixMatches = normalized.length >= 2 && normalized.length < 5
+          ? ALL_AREAS.filter((a) => a.zip.startsWith(normalized))
+          : [];
+        return {
+          status: 'typing',
+          raw: normalized,
+          matches: prefixMatches,
+          extractedZip: null,
+          ignoredPhone: false,
+          isFullAddress: false,
+          matchedByProvinceOnly: false,
+        };
+      }
+
+      // กรณีมีตัวอักษรปน (ชื่อพื้นที่ หรือ ที่อยู่เต็มๆ)
+      const { zip: extractedZip, ignoredPhone, cleanedAddress } = extractZipFromAddress(normalized);
+      const isFullAddress = normalized.length > 18 || ignoredPhone || (Boolean(extractedZip) && /[^\d\s]/.test(normalized));
+
+      // 1) ถอดรหัสไปรษณีย์ 5 หลักออกมาได้จากข้อความ/ที่อยู่
+      if (extractedZip) {
+        let matches = ALL_AREAS.filter((a) => a.zip === extractedZip);
+
+        // หาก 1 รหัสมีหลายพื้นที่ (เช่น 58130 ปาย/กัลยาณิวัฒนา หรือ 83000 เมืองภูเก็ต/เกาะยาว)
+        // ให้ตรวจสอบชื่ออำเภอหรือจังหวัดในที่อยู่เพื่อเรียงพื้นที่ที่ตรงที่สุดขึ้นด้านบน
+        if (matches.length > 1) {
+          const addrLower = cleanedAddress.toLowerCase();
+          matches = [...matches].sort((a, b) => {
+            const score = (area) => {
+              let s = 0;
+              const distParts = area.district.split(',').map((d) => d.trim().toLowerCase());
+              if (distParts.some((d) => addrLower.includes(d))) s += 3;
+              if (area.aliases.some((al) => addrLower.includes(al.toLowerCase()))) s += 3;
+              if (addrLower.includes(area.province.toLowerCase())) s += 1;
+              return s;
+            };
+            return score(b) - score(a);
+          });
+        }
+
+        return {
+          status: matches.length > 0 ? 'surcharge' : 'normal',
+          raw: normalized,
+          matches,
+          extractedZip,
+          ignoredPhone,
+          isFullAddress,
+          matchedByProvinceOnly: false,
+        };
+      }
+
+      // 2) ไม่มีรหัสไปรษณีย์ 5 หลัก -> ค้นหาด้วยชื่ออำเภอ / จังหวัด / คำพ้อง
+      const cleaned = cleanLocationText(cleanedAddress).toLowerCase();
+      if (!cleaned) {
+        return {
+          status: 'typing',
+          raw: normalized,
+          matches: [],
+          extractedZip: null,
+          ignoredPhone,
+          isFullAddress,
+          matchedByProvinceOnly: false,
+        };
+      }
+
+      const tokens = cleaned.split(/[\s,]+/).filter((t) => t.length > 0);
+
+      // 2a) ค้นหาแบบทุกคำค้นหาต้องตรงกับพื้นที่นั้น (เช่น "เกาะสมุย สุราษฎร์ธานี" หรือ "เบตง")
+      let matches = ALL_AREAS.filter((area) => {
+        const haystack = [
+          area.zip,
+          area.district,
+          area.province,
+          area.region || '',
+          ...area.aliases,
+        ].join(' ').toLowerCase();
+        return tokens.every((tk) => haystack.includes(tk));
+      });
+
+      // 2b) หากเป็นการวางที่อยู่ยาวที่ไม่มีรหัสไปรษณีย์ (เช่น "คุณเอ ต.เกาะช้าง จ.ตราด")
+      // ให้ตรวจจับว่ามีชื่ออำเภอในรายการปรากฏอยู่ในที่อยู่หรือไม่
+      if (matches.length === 0 && isFullAddress) {
+        matches = ALL_AREAS.filter((area) => {
+          const distKeywords = [
+            ...area.district.split(',').map((d) => d.trim().toLowerCase()),
+            ...area.aliases.map((al) => al.toLowerCase()),
+          ].filter((kw) => kw.length >= 2);
+          const hasDistrict = distKeywords.some((kw) => cleaned.includes(kw));
+          if (!hasDistrict) return false;
+          // ถ้าในที่อยู่ระบุจังหวัดด้วย ต้องไม่ขัดแย้งกับจังหวัดของพื้นที่นั้น
+          const mentionedOtherProvince = ALL_PROVINCES.some(
+            (p) => p !== area.province && cleaned.includes(p.toLowerCase())
+          );
+          return !mentionedOtherProvince || cleaned.includes(area.province.toLowerCase());
+        });
+      }
+
+      const matchedByProvinceOnly =
+        matches.length > 0 &&
+        ALL_PROVINCES.some((p) => p.toLowerCase() === cleaned);
+
+      if (matches.length > 0) {
+        return {
+          status: 'surcharge',
+          raw: normalized,
+          matches,
+          extractedZip: null,
+          ignoredPhone,
+          isFullAddress,
+          matchedByProvinceOnly,
+        };
+      }
+
+      // ถ้าพิมพ์สั้นมาก (1 ตัวอักษร) ให้ถือว่ากำลังพิมพ์, ถ้ายาวกว่านั้นหรือเป็นที่อยู่เต็มให้บอกว่าเป็นพื้นที่ปกติ
+      if (cleaned.length < 2) {
+        return {
+          status: 'typing',
+          raw: normalized,
+          matches: [],
+          extractedZip: null,
+          ignoredPhone,
+          isFullAddress,
+          matchedByProvinceOnly: false,
+        };
+      }
+
+      return {
+        status: 'normal',
+        raw: normalized,
+        matches: [],
+        extractedZip: null,
+        ignoredPhone,
+        isFullAddress,
+        matchedByProvinceOnly: false,
+      };
+    }
+
+    /**
+     * สร้างข้อความสุภาพสำหรับคัดลอกส่งแจ้งลูกค้าในแชท
+     */
+    function buildCustomerMessage(analysis) {
+      if (analysis.status === 'normal') {
+        if (analysis.extractedZip) {
+          return `✅ พื้นที่จัดส่งรหัส ${analysis.extractedZip} อยู่ในเขตพื้นที่ปกติ ไม่มีค่าบริการจัดส่งเพิ่มเติมครับ`;
+        }
+        return `✅ พื้นที่ "${analysis.raw}" อยู่ในเขตพื้นที่ปกติ ไม่มีค่าบริการจัดส่งเพิ่มเติมครับ`;
+      }
+
+      const matches = analysis.matches;
+      if (!matches || matches.length === 0) return '';
+
+      // กรณีตรงกับ 1 พื้นที่ชัดเจน
+      if (matches.length === 1) {
+        const a = matches[0];
+        if (a.remote && a.tourist) {
+          return `📍 พื้นที่จัดส่งรหัส ${a.zip} (อ.${a.district} จ.${a.province}) อยู่ในเขตพื้นที่ห่างไกลและพื้นที่ท่องเที่ยวพิเศษ มีค่าบริการจัดส่งเพิ่มเติมรวม 50 บาท (ระยะเวลาจัดส่งประมาณ ${a.deliveryTime}) ครับ`;
+        }
+        if (a.tourist) {
+          return `📍 พื้นที่จัดส่งรหัส ${a.zip} (อ.${a.district} จ.${a.province}) อยู่ในเขตพื้นที่ท่องเที่ยวพิเศษ มีค่าบริการจัดส่งเพิ่มเติม 50 บาท (ระยะเวลาจัดส่งประมาณ ${a.deliveryTime}) ครับ`;
+        }
+        return `📍 พื้นที่จัดส่งรหัส ${a.zip} (อ.${a.district} จ.${a.province}) อยู่ในเขตพื้นที่ห่างไกล มีค่าบริการจัดส่งเพิ่มเติม 50 บาทครับ`;
+      }
+
+      // กรณี 1 รหัสไปรษณีย์มีหลายพื้นที่ย่อย (เช่น 58130 หรือ 83000)
+      if (analysis.extractedZip) {
+        const areaNames = matches.map((a) => `อ.${a.district} จ.${a.province}`).join(' / ');
+        const hasTourist = matches.some((a) => a.tourist);
+        const hasRemote = matches.some((a) => a.remote);
+        const deliveryTimes = Array.from(new Set(matches.map((a) => a.deliveryTime).filter(Boolean)));
+        const typeLabel = hasRemote && hasTourist
+          ? 'พื้นที่ห่างไกล/พื้นที่ท่องเที่ยวพิเศษ'
+          : hasTourist
+            ? 'พื้นที่ท่องเที่ยวพิเศษ'
+            : 'พื้นที่ห่างไกล';
+        const timeText = deliveryTimes.length > 0 ? ` (ระยะเวลาจัดส่งประมาณ ${deliveryTimes.join(', ')})` : '';
+        return `📍 พื้นที่จัดส่งรหัส ${analysis.extractedZip} (${areaNames}) อยู่ในเขต${typeLabel} มีค่าบริการจัดส่งเพิ่มเติม 50 บาท${timeText} ครับ`;
+      }
+
+      // กรณีค้นหาด้วยชื่ออำเภอ/จังหวัดแล้วพบหลายรายการ
+      const first = matches[0];
+      const moreCount = matches.length - 1;
+      const sampleZips = Array.from(new Set(matches.map((m) => m.zip))).slice(0, 4).join(', ');
+      return `📍 พื้นที่ "${analysis.raw}" (เช่น รหัส ${sampleZips}${moreCount > 3 ? ' และอื่นๆ' : ''}) อยู่ในเขตพื้นที่จัดส่งพิเศษของ Flash Express มีค่าบริการจัดส่งเพิ่มเติม 50 บาทครับ`;
+    }
+
+    /**
+     * คัดลอกข้อความลงคลิปบอร์ดด้วย document.execCommand('copy') เพื่อรองรับ iFrame 100%
+     */
+    function copyToClipboard(text, successMsg = 'คัดลอกข้อความเรียบร้อยแล้ว') {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+
+        if (ok) {
+          showToast(successMsg, 'success');
+        } else {
+          showToast('ไม่สามารถคัดลอกได้ กรุณาลองอีกครั้ง', 'error');
+        }
+      } catch (err) {
+        console.error('Copy failed:', err);
+        showToast('เกิดข้อผิดพลาดในการคัดลอก', 'error');
+      }
+    }
+
+    /**
+     * แสดง Toast แจ้งเตือนมุมขวาล่าง
+     */
+    function showToast(message, variant = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const accent = variant === 'error'
+        ? 'border-l-4 border-red-400 bg-red-700'
+        : variant === 'info'
+          ? 'border-l-4 border-blue-400 bg-[#111827]'
+          : 'border-l-4 border-[#FFD400] bg-[#111827]';
+
+      const iconColor = variant === 'error'
+        ? 'text-red-200'
+        : variant === 'info'
+          ? 'text-blue-300'
+          : 'text-[#FFD400]';
+
+      el.className = `pointer-events-auto ${accent} text-white px-3.5 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300`;
+      el.innerHTML = `
+        <svg class="w-4 h-4 shrink-0 ${iconColor}" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+          ${variant === 'error'
+            ? '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+            : '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>'}
+        </svg>
+        <span class="leading-snug">${escapeHTML(message)}</span>
+      `;
+      container.appendChild(el);
+
+      setTimeout(() => {
+        el.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => el.remove(), 260);
+      }, 2600);
+    }
+
+    // สร้างป้ายประเภทพื้นที่ (Badge)
+    function renderCategoryBadges(area, compact = false) {
+      const pad = compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-[11px]';
+      let out = '<div class="inline-flex flex-wrap items-center gap-1">';
+      if (area.remote) {
+        out += `<span class="inline-flex items-center gap-1 ${pad} rounded-full font-semibold bg-[#111827] text-[#FFD400]">พื้นที่ห่างไกล</span>`;
+      }
+      if (area.tourist) {
+        out += `<span class="inline-flex items-center gap-1 ${pad} rounded-full font-semibold bg-red-600 text-white">ท่องเที่ยวพิเศษ</span>`;
+      }
+      out += '</div>';
+      return out;
+    }
+
+    // สร้างข้อความภาคและระยะเวลาจัดส่ง
+    function renderMetaInfo(area) {
+      const parts = [];
+      if (area.region) {
+        parts.push(`<span class="inline-flex items-center gap-1 text-gray-600"><span class="w-1.5 h-1.5 rounded-full bg-[#FFD400]"></span>${escapeHTML(area.region)}</span>`);
+      }
+      if (area.deliveryTime) {
+        parts.push(`<span class="inline-flex items-center gap-1 text-red-700 font-medium">⏱ ${escapeHTML(area.deliveryTime)}</span>`);
+      }
+      return parts.join('<span class="text-gray-300 mx-1">•</span>');
+    }
+
+    /**
+     * =========================================================================
+     * 4. ประวัติการค้นหาล่าสุด (Recent History)
+     * =========================================================================
+     */
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            state.recentHistory = parsed.slice(0, 8);
+          }
+        }
+      } catch (e) {
+        state.recentHistory = [];
+      }
+    }
+
+    function saveHistoryItem(query, status, label) {
+      const cleanQ = String(query || '').trim();
+      if (!cleanQ || (status !== 'surcharge' && status !== 'normal')) return;
+
+      // ป้องกันการบันทึกรายการซ้ำติดกัน
+      state.recentHistory = state.recentHistory.filter((item) => item.query !== cleanQ);
+      state.recentHistory.unshift({
+        query: cleanQ,
+        status,
+        label: label || cleanQ,
+      });
+      state.recentHistory = state.recentHistory.slice(0, 8);
+
+      try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(state.recentHistory));
+      } catch (e) {
+        // กรณีพื้นที่จัดเก็บถูกจำกัด ให้ทำงานต่อในหน่วยความจำได้ปกติ
+      }
+    }
+
+    function clearHistory() {
+      state.recentHistory = [];
+      try {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+      } catch (e) {
+        // ignore
+      }
+      renderSingleStage();
+      showToast('ล้างประวัติการค้นหาแล้ว', 'info');
+    }
+
+    /**
+     * =========================================================================
+     * 5. การเรนเดอร์ Result Hero Card (คอลัมน์ซ้าย - โหมดตรวจสอบด่วน)
+     * =========================================================================
+     */
+    const singleInput = document.getElementById('single-search-input');
+    const btnClearSingle = document.getElementById('btn-clear-single');
+    const btnPasteClipboard = document.getElementById('btn-paste-clipboard');
+    const singleResultStage = document.getElementById('single-result-stage');
+
+    // เก็บข้อความแจ้งลูกค้าล่าสุดเพื่อใช้กับปุ่มคัดลอก
+    let currentCustomerCopyText = '';
+
+    function renderSingleStage() {
+      const query = state.searchQuery;
+      const hasQuery = query.trim().length > 0;
+
+      // สลับแสดงปุ่มล้างข้อความ
+      if (hasQuery) {
+        btnClearSingle.classList.remove('hidden');
+        btnClearSingle.classList.add('inline-flex');
+      } else {
+        btnClearSingle.classList.add('hidden');
+        btnClearSingle.classList.remove('inline-flex');
+      }
+
+      // หากคลิกเลือกแถวเฉพาะจากตารางด้านขวา ให้แสดงพื้นที่นั้นแบบเจาะจง
+      let analysis;
+      if (state.selectedAreaId) {
+        const area = ALL_AREAS.find((a) => a.id === state.selectedAreaId);
+        if (area) {
+          analysis = {
+            status: 'surcharge',
+            raw: `${area.zip} ${area.district}`,
+            matches: [area],
+            extractedZip: area.zip,
+            ignoredPhone: false,
+            isFullAddress: false,
+            matchedByProvinceOnly: false,
+            fromRowClick: true,
+          };
+        } else {
+          analysis = analyzeQuery(query);
+        }
+      } else {
+        analysis = analyzeQuery(query);
+      }
+
+      currentCustomerCopyText = buildCustomerMessage(analysis);
+
+      // -----------------------------------------------------------------------
+      // สถานะที่ 1: พร้อมใช้งาน (ยังไม่ได้พิมพ์ค้นหา)
+      // -----------------------------------------------------------------------
+      if (analysis.status === 'idle') {
+        const historyHtml = state.recentHistory.length > 0
+          ? `
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ประวัติการตรวจสอบล่าสุด</h3>
+                <button
+                  type="button"
+                  id="btn-clear-history"
+                  class="text-[11px] font-medium text-gray-400 hover:text-red-600 transition cursor-pointer"
+                >
+                  ล้างประวัติ
+                </button>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                ${state.recentHistory.map((item) => {
+                  const isExtra = item.status === 'surcharge';
+                  const pillStyle = isExtra
+                    ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100';
+                  const dotStyle = isExtra ? 'bg-red-500' : 'bg-emerald-500';
+                  return `
+                    <button
+                      type="button"
+                      data-history-query="${escapeHTML(item.query)}"
+                      class="history-chip inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition cursor-pointer ${pillStyle}"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full ${dotStyle}"></span>
+                      <span class="truncate max-w-[180px]">${escapeHTML(item.label)}</span>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `
+          : '';
+
+        singleResultStage.innerHTML = `
+          <div class="h-full flex flex-col justify-between gap-4">
+            <div class="space-y-4">
+              <!-- การ์ดสรุปกติกา 3 ช่อง -->
+              <div class="grid grid-cols-3 gap-2 sm:gap-2.5">
+                <div class="rounded-2xl bg-emerald-50/80 border border-emerald-200/80 p-3 text-center">
+                  <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p class="text-[11px] font-semibold text-emerald-800">พื้นที่ปกติ</p>
+                  <p class="font-mono text-base sm:text-lg font-bold text-emerald-700 mt-0.5">0฿</p>
+                </div>
+
+                <div class="rounded-2xl bg-gray-900 border border-gray-800 p-3 text-center text-white">
+                  <div class="w-8 h-8 rounded-xl bg-[#FFD400] text-[#111827] mx-auto flex items-center justify-center mb-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <p class="text-[11px] font-semibold text-gray-200">พื้นที่ห่างไกล</p>
+                  <p class="font-mono text-base sm:text-lg font-bold text-[#FFD400] mt-0.5">+50฿</p>
+                </div>
+
+                <div class="rounded-2xl bg-red-50/90 border border-red-200/80 p-3 text-center">
+                  <div class="w-8 h-8 rounded-xl bg-red-600 text-white mx-auto flex items-center justify-center mb-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p class="text-[11px] font-semibold text-red-800">ท่องเที่ยวพิเศษ</p>
+                  <p class="font-mono text-base sm:text-lg font-bold text-red-600 mt-0.5">+50฿</p>
+                </div>
+              </div>
+
+              <!-- กล่องคำแนะนำการใช้งานอัจฉริยะ -->
+              <div class="rounded-2xl bg-[#F8FAFC] border border-gray-200/80 p-3.5 space-y-2">
+                <div class="flex items-center gap-2 text-xs font-semibold text-gray-800">
+                  <span class="w-5 h-5 rounded-lg bg-[#FFD400]/30 text-gray-900 flex items-center justify-center text-[11px]">✦</span>
+                  เคล็ดลับการใช้งานให้ไวที่สุด
+                </div>
+                <ul class="text-xs text-gray-600 space-y-1.5 pl-1">
+                  <li class="flex items-start gap-2">
+                    <span class="text-[#111827] font-bold">•</span>
+                    <span><strong>วางที่อยู่ลูกค้าเต็มๆ ได้เลย</strong> — ระบบดึงรหัสไปรษณีย์ 5 หลักอัตโนมัติโดยไม่สับสนกับเบอร์โทร</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-[#111827] font-bold">•</span>
+                    <span><strong>คลิกแถวใดก็ได้ในตารางรายชื่อ</strong> เพื่อดึงข้อมูลมาแสดงและคัดลอกข้อความส่งแจ้งลูกค้าทันที</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="text-[#111827] font-bold">•</span>
+                    <span>พื้นที่นอกเหนือจาก <strong class="font-mono">92</strong> รายการในตาราง ถือเป็น <strong class="text-emerald-700">พื้นที่ปกติ (ไม่มีค่าส่งเพิ่ม)</strong></span>
+                  </li>
+                </ul>
+              </div>
+
+              ${historyHtml}
+            </div>
+
+            <!-- แถบข้อมูลสถิติย่อยด้านล่างการ์ด -->
+            <div class="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+              <span>ฐานข้อมูล: ห่างไกล 55 • ท่องเที่ยวพิเศษ 39 (ซ้ำ 2)</span>
+              <span class="font-mono text-gray-500 font-semibold">รวม 92 พื้นที่</span>
+            </div>
+          </div>
+        `;
+
+        // ผูก Event ปุ่มประวัติการค้นหา
+        const clearHistBtn = document.getElementById('btn-clear-history');
+        if (clearHistBtn) clearHistBtn.addEventListener('click', clearHistory);
+        singleResultStage.querySelectorAll('.history-chip').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const q = btn.getAttribute('data-history-query');
+            triggerSingleSearch(q, false);
+          });
+        });
+        return;
+      }
+
+      // -----------------------------------------------------------------------
+      // สถานะที่ 2: กำลังพิมพ์ (ยังไม่ครบ 5 หลัก และยังไม่ตรงชื่อพื้นที่)
+      // -----------------------------------------------------------------------
+      if (analysis.status === 'typing') {
+        const isDigits = /^\d+$/.test(analysis.raw);
+        const digitHint = isDigits
+          ? analysis.raw.length < 5
+            ? `พิมพ์แล้ว <strong class="font-mono text-amber-900">${analysis.raw.length}/5</strong> หลัก — กรุณาพิมพ์รหัสไปรษณีย์ให้ครบ 5 หลัก`
+            : `รหัสไปรษณีย์ไทยมี 5 หลัก (ขณะนี้พิมพ์ ${analysis.raw.length} หลัก)`
+          : 'พิมพ์รหัสไปรษณีย์ให้ครบ 5 หลัก หรือพิมพ์ชื่ออำเภอ / จังหวัด';
+
+        const suggestionsHtml = analysis.matches.length > 0
+          ? `
+            <div class="mt-3 pt-3 border-t border-amber-200/70 space-y-1.5">
+              <p class="text-[11px] font-semibold text-amber-800">พื้นที่พิเศษที่ขึ้นต้นด้วย <span class="font-mono">${escapeHTML(analysis.raw)}</span> (${analysis.matches.length} รายการ):</p>
+              <div class="flex flex-wrap gap-1.5">
+                ${analysis.matches.slice(0, 8).map((a) => `
+                  <button
+                    type="button"
+                    data-pick-id="${escapeHTML(a.id)}"
+                    class="pick-area-chip px-2.5 py-1 rounded-lg bg-white border border-amber-200 hover:border-[#111827] hover:bg-[#111827] hover:text-[#FFD400] text-xs font-medium text-gray-800 transition cursor-pointer"
+                  >
+                    <span class="font-mono font-bold">${escapeHTML(a.zip)}</span> ${escapeHTML(a.district)}
+                  </button>
+                `).join('')}
+                ${analysis.matches.length > 8 ? `<span class="text-[11px] text-amber-700 self-center">+อีก ${analysis.matches.length - 8} รายการในตารางขวา</span>` : ''}
+              </div>
+            </div>
+          `
+          : '';
+
+        singleResultStage.innerHTML = `
+          <div class="rounded-2xl border-2 border-amber-300/90 bg-amber-50/70 p-4 sm:p-5">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-sm sm:text-base font-bold text-amber-900">กรุณาพิมพ์ข้อมูลเพิ่มเติม</h3>
+                <p class="text-xs sm:text-sm text-amber-800/90 mt-0.5">${digitHint}</p>
+              </div>
+            </div>
+            ${suggestionsHtml}
+          </div>
+        `;
+
+        singleResultStage.querySelectorAll('.pick-area-chip').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            selectAreaFromDirectory(chip.getAttribute('data-pick-id'));
+          });
+        });
+        return;
+      }
+
+      // -----------------------------------------------------------------------
+      // สถานะที่ 3: พื้นที่ปกติ (ไม่คิดค่าส่งเพิ่ม 0 บาท)
+      // -----------------------------------------------------------------------
+      if (analysis.status === 'normal') {
+        const refBadge = analysis.extractedZip
+          ? `รหัสไปรษณีย์ <span class="font-mono font-bold">${escapeHTML(analysis.extractedZip)}</span>`
+          : `คำค้นหา "${escapeHTML(analysis.raw)}"`;
+
+        const zipNum = analysis.extractedZip ? parseInt(analysis.extractedZip, 10) : null;
+        const outOfRangeWarn = zipNum !== null && (zipNum < 10000 || zipNum > 96999)
+          ? `<div class="mt-2.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+               หมายเหตุ: รหัส <span class="font-mono font-bold">${escapeHTML(analysis.extractedZip)}</span> อยู่นอกช่วงรหัสไปรษณีย์ทั่วไปของไทย (10000–96999)
+             </div>`
+          : '';
+
+        const smartExtractNote = analysis.isFullAddress && analysis.extractedZip
+          ? `<div class="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 bg-white/80 border border-emerald-200 rounded-lg px-2.5 py-1">
+               <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+               ดึงรหัสไปรษณีย์ <strong class="font-mono">${escapeHTML(analysis.extractedZip)}</strong> จากที่อยู่สำเร็จ${analysis.ignoredPhone ? ' (คัดแยกเบอร์โทรออกให้แล้ว)' : ''}
+             </div>`
+          : '';
+
+        singleResultStage.innerHTML = `
+          <div class="rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-emerald-50 to-white p-4 sm:p-5 shadow-sm space-y-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-[#059669] text-white flex items-center justify-center shrink-0 shadow-md">
+                  <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                    ${refBadge}
+                  </span>
+                  <h2 class="text-lg sm:text-xl font-bold text-[#059669] mt-1 leading-tight">
+                    พื้นที่ปกติ — ไม่คิดค่าส่งเพิ่ม
+                  </h2>
+                  <p class="text-xs sm:text-sm text-gray-600 mt-1">
+                    ไม่อยู่ในรายการพื้นที่ห่างไกลหรือพื้นที่ท่องเที่ยวพิเศษ คิดอัตราค่าจัดส่งปกติ
+                  </p>
+                </div>
+              </div>
+              <div class="shrink-0 px-3 py-1.5 rounded-xl bg-[#059669] text-white font-mono font-bold text-base sm:text-lg shadow-sm">
+                0 บาท
+              </div>
+            </div>
+
+            ${smartExtractNote}
+            ${outOfRangeWarn}
+
+            <!-- กล่องข้อความแจ้งลูกค้า + ปุ่มคัดลอก -->
+            <div class="pt-3 border-t border-emerald-200/70 space-y-2">
+              <p class="text-[11px] font-semibold text-gray-500">ข้อความพร้อมส่งแจ้งลูกค้า:</p>
+              <div class="p-2.5 rounded-xl bg-white border border-emerald-200/80 text-xs text-gray-700 leading-relaxed">
+                ${escapeHTML(currentCustomerCopyText)}
+              </div>
+              <button
+                id="btn-copy-customer-msg"
+                type="button"
+                class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#059669] hover:bg-emerald-700 active:scale-[0.99] text-white font-semibold text-xs sm:text-sm shadow-sm transition cursor-pointer"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>คัดลอกข้อความแจ้งลูกค้า</span>
+              </button>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('btn-copy-customer-msg').addEventListener('click', () => {
+          copyToClipboard(currentCustomerCopyText, 'คัดลอกข้อความแจ้งลูกค้า (พื้นที่ปกติ) แล้ว');
+        });
+        return;
+      }
+
+      // -----------------------------------------------------------------------
+      // สถานะที่ 4: พบพื้นที่คิดค่าส่งเพิ่ม (+50 บาท)
+      // -----------------------------------------------------------------------
+      const matches = analysis.matches;
+      const smartExtractNote = analysis.isFullAddress && analysis.extractedZip
+        ? `<div class="inline-flex items-center gap-1.5 text-[11px] font-medium text-red-800 bg-white/90 border border-red-200 rounded-lg px-2.5 py-1">
+             <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+             ดึงรหัสไปรษณีย์ <strong class="font-mono">${escapeHTML(analysis.extractedZip)}</strong> จากที่อยู่สำเร็จ${analysis.ignoredPhone ? ' (คัดแยกเบอร์โทรออกแล้ว)' : ''}
+           </div>`
+        : '';
+
+      const provinceWarning = analysis.matchedByProvinceOnly
+        ? `<div class="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+             พบพื้นที่คิดค่าส่งเพิ่มใน จ.<strong>${escapeHTML(analysis.raw)}</strong> จำนวน ${matches.length} รายการ (พื้นที่อื่นในจังหวัดนี้เป็นพื้นที่ปกติ แนะนำให้เช็คด้วยรหัสไปรษณีย์ 5 หลัก)
+           </div>`
+        : '';
+
+      const multiZipHint = !analysis.matchedByProvinceOnly && matches.length > 1
+        ? `<div class="text-[11px] text-orange-900 bg-orange-50 border border-orange-200 rounded-xl px-3 py-1.5 font-medium">
+             พบพื้นที่ตรงกัน ${matches.length} รายการ (คลิกเลือกรายการด้านล่างหากต้องการคัดลอกเฉพาะพื้นที่)
+           </div>`
+        : '';
+
+      // สร้างรายการย่อยของแต่ละพื้นที่ที่ตรงกัน
+      const matchCardsHtml = matches.slice(0, 12).map((area) => {
+        const aliasLabel = area.aliases.includes('สบเมย')
+          ? ' <span class="text-[11px] font-normal text-gray-500">(สบเมย)</span>'
+          : '';
+        const dualNotice = area.remote && area.tourist
+          ? `<p class="mt-1.5 text-[11px] font-medium text-orange-800 bg-orange-50 border border-orange-200/80 rounded-lg px-2 py-1">
+               อยู่ในทั้ง 2 หมวด — คิดเพิ่มรวม 50 บาท (ไม่คิดซ้ำซ้อน)
+             </p>`
+          : '';
+
+        return `
+          <div
+            data-card-area-id="${escapeHTML(area.id)}"
+            class="sub-area-card bg-white rounded-xl border border-red-200/80 p-3 shadow-xs hover:border-red-400 transition ${matches.length > 1 ? 'cursor-pointer' : ''}"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="space-y-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono font-bold text-sm px-2 py-0.5 rounded-lg bg-[#111827] text-[#FFD400]">
+                    ${escapeHTML(area.zip)}
+                  </span>
+                  <span class="font-bold text-sm sm:text-base text-gray-900">
+                    อ.${escapeHTML(area.district)}${aliasLabel}
+                  </span>
+                  <span class="text-xs sm:text-sm text-gray-500 font-medium">
+                    จ.${escapeHTML(area.province)}
+                  </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                  ${renderCategoryBadges(area)}
+                  <span class="text-[11px]">${renderMetaInfo(area)}</span>
+                </div>
+              </div>
+              <span class="font-mono font-bold text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-lg shrink-0">
+                +50฿
+              </span>
+            </div>
+            ${dualNotice}
+          </div>
+        `;
+      }).join('');
+
+      const overflowNote = matches.length > 12
+        ? `<p class="text-[11px] text-center text-gray-500">แสดง 12 จาก ${matches.length} รายการ — ดูทั้งหมดได้ที่ตารางด้านขวา</p>`
+        : '';
+
+      singleResultStage.innerHTML = `
+        <div class="rounded-2xl border-2 border-[#DC2626] bg-gradient-to-b from-red-50/90 via-orange-50/40 to-white p-4 sm:p-5 shadow-sm space-y-3.5">
+          <!-- หัวการ์ดสถานะ +50 บาท -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-[#DC2626] text-white flex items-center justify-center shrink-0 shadow-md">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700">
+                  พื้นที่จัดส่งพิเศษ (${matches.length} รายการ)
+                </span>
+                <h2 class="text-lg sm:text-xl font-bold text-[#DC2626] mt-0.5 leading-tight">
+                  คิดค่าส่งเพิ่ม +50 บาท
+                </h2>
+              </div>
+            </div>
+
+            <div class="shrink-0 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#DC2626] to-[#EA580C] text-white font-mono font-bold text-lg shadow-sm">
+              +50฿
+            </div>
+          </div>
+
+          ${smartExtractNote}
+          ${provinceWarning}
+          ${multiZipHint}
+
+          <!-- รายการพื้นที่ย่อยที่พบ -->
+          <div class="space-y-2">
+            ${matchCardsHtml}
+            ${overflowNote}
+          </div>
+
+          <!-- ข้อความแจ้งลูกค้า + ปุ่มคัดลอก -->
+          <div class="pt-3 border-t border-red-200/70 space-y-2">
+            <p class="text-[11px] font-semibold text-gray-500">ข้อความพร้อมส่งแจ้งลูกค้า:</p>
+            <div class="p-2.5 rounded-xl bg-white border border-red-200/80 text-xs text-gray-700 leading-relaxed">
+              ${escapeHTML(currentCustomerCopyText)}
+            </div>
+            <button
+              id="btn-copy-customer-msg"
+              type="button"
+              class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#111827] hover:bg-gray-800 active:scale-[0.99] text-[#FFD400] font-semibold text-xs sm:text-sm shadow-sm transition cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span>คัดลอกข้อความแจ้งลูกค้า</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btn-copy-customer-msg').addEventListener('click', () => {
+        copyToClipboard(currentCustomerCopyText, 'คัดลอกข้อความแจ้งลูกค้า (+50 บาท) แล้ว');
+      });
+
+      // กรณีมีหลายพื้นที่ย่อย คลิกที่การ์ดย่อยเพื่อเลือกเฉพาะพื้นที่นั้น
+      if (matches.length > 1) {
+        singleResultStage.querySelectorAll('.sub-area-card').forEach((card) => {
+          card.addEventListener('click', () => {
+            selectAreaFromDirectory(card.getAttribute('data-card-area-id'));
+          });
+        });
+      }
+    }
+
+    /**
+     * สั่งค้นหาในโหมดตรวจสอบด่วน พร้อมซิงก์ตารางด้านขวาและบันทึกประวัติ
+     */
+    let historyDebounceTimer = null;
+
+    function triggerSingleSearch(rawVal, recordImmediately = false) {
+      state.searchQuery = rawVal;
+      state.selectedAreaId = null;
+      state.dirSyncOverride = false;
+
+      if (singleInput.value !== rawVal) {
+        singleInput.value = rawVal;
+      }
+
+      renderSingleStage();
+      renderDirectory();
+
+      // บันทึกประวัติเมื่อผลลัพธ์นิ่ง (Debounce 900ms หรือบันทึกทันทีเมื่อคลิกชิป/กด Enter)
+      clearTimeout(historyDebounceTimer);
+      const saveFn = () => {
+        const res = analyzeQuery(state.searchQuery);
+        if (res.status === 'surcharge') {
+          const label = res.matches.length === 1
+            ? `${res.matches[0].zip} ${res.matches[0].district}`
+            : res.extractedZip
+              ? `${res.extractedZip} (${res.matches.length} พื้นที่)`
+              : res.raw;
+          saveHistoryItem(res.extractedZip || res.raw, 'surcharge', label);
+        } else if (res.status === 'normal' && res.extractedZip) {
+          saveHistoryItem(res.extractedZip, 'normal', `${res.extractedZip} (ปกติ)`);
+        }
+      };
+
+      if (recordImmediately) {
+        saveFn();
+      } else {
+        historyDebounceTimer = setTimeout(saveFn, 900);
+      }
+    }
+
+    /**
+     * เมื่อผู้ใช้คลิกแถวใดก็ได้ในตารางด้านขวา
+     * ดึงข้อมูลพื้นที่นั้นไปแสดงบน Result Card ด้านซ้ายทันที (และสลับไปแท็บตรวจด่วนบนมือถือ)
+     */
+    function selectAreaFromDirectory(areaId) {
+      const area = ALL_AREAS.find((a) => a.id === areaId);
+      if (!area) return;
+
+      state.selectedAreaId = area.id;
+      state.searchQuery = `${area.zip} ${area.district}`;
+      singleInput.value = `${area.zip} ${area.district}`;
+      state.dirSyncOverride = true; // คงตารางด้านขวาไว้ให้คลิกดูรายการอื่นต่อได้ง่าย
+
+      saveHistoryItem(area.zip, 'surcharge', `${area.zip} ${area.district}`);
+
+      // สลับมาโหมดตรวจสอบด่วนหากอยู่โหมด Bulk หรือแท็บรายชื่อบนมือถือ
+      setActiveView('single');
+      renderSingleStage();
+      renderDirectory();
+    }
+
+    // Event Listeners ของช่องค้นหาเดี่ยว
+    singleInput.addEventListener('input', (e) => {
+      triggerSingleSearch(e.target.value, false);
+    });
+
+    singleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        triggerSingleSearch(singleInput.value, true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        clearSingleSearch();
+      }
+    });
+
+    function clearSingleSearch() {
+      state.searchQuery = '';
+      state.selectedAreaId = null;
+      state.dirSyncOverride = false;
+      singleInput.value = '';
+      renderSingleStage();
+      renderDirectory();
+      singleInput.focus();
+    }
+
+    btnClearSingle.addEventListener('click', clearSingleSearch);
+
+    // ปุ่มวางจาก Clipboard
+    btnPasteClipboard.addEventListener('click', async () => {
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+          const text = await navigator.clipboard.readText();
+          if (text && text.trim()) {
+            triggerSingleSearch(text.trim(), true);
+            showToast('วางข้อความและตรวจสอบให้แล้ว');
+            return;
+          } else {
+            showToast('ไม่พบข้อความในคลิปบอร์ด', 'info');
+            return;
+          }
+        }
+        throw new Error('Clipboard API unavailable');
+      } catch (err) {
+        singleInput.focus();
+        showToast('กด Ctrl+V (หรือ ⌘+V) ในช่องค้นหาเพื่อวางได้เลย', 'info');
+      }
+    });
+
+    // ปุ่มตัวอย่างด่วน (Quick Test Chips)
+    document.querySelectorAll('.quick-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const val = chip.getAttribute('data-quick');
+        triggerSingleSearch(val, true);
+      });
+    });
+
+    /**
+     * =========================================================================
+     * 6. โหมดตรวจสอบหลายรายการ (Bulk Check)
+     * =========================================================================
+     */
+    const bulkTextarea = document.getElementById('bulk-textarea');
+    const bulkCheckBtn = document.getElementById('bulk-check-btn');
+    const bulkClearBtn = document.getElementById('bulk-clear-btn');
+    const bulkSampleBtn = document.getElementById('bulk-sample-btn');
+    const bulkCopyBtn = document.getElementById('bulk-copy-btn');
+    const bulkSummaryBar = document.getElementById('bulk-summary-bar');
+    const bulkSummaryGrid = document.getElementById('bulk-summary-grid');
+    const bulkListContainer = document.getElementById('bulk-list-container');
+
+    /**
+     * แยกรายการที่วางในโหมด Bulk อย่างชาญฉลาด:
+     * - หากเป็นบรรทัดที่อยู่ยาว (มีข้อความผสมตัวเลข) ให้เก็บทั้งบรรทัดเป็น 1 รายการ
+     * - หากเป็นรายการสั้นคั่นด้วยจุลภาค/ช่องว่าง (เช่น "10110, 95110 84320") ให้แยกเป็นแต่ละรายการ
+     */
+    function parseBulkEntries(rawText) {
+      const lines = rawText.split(/\r?\n/);
+      const entries = [];
+
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        // หากบรรทัดนั้นดูเหมือนที่อยู่เต็ม (มีคำว่า โทร/อ./จ./ต./หมู่ หรือยาวเกิน 20 ตัวอักษรและไม่มีจุลภาคคั่นหลายรหัส)
+        const normalized = normalizeThaiDigits(trimmed);
+        const multipleZipsInLine = (normalized.match(/(?<!\d)[1-9]\d{4}(?!\d)/g) || []).length > 1;
+        const looksLikeFullAddress =
+          !multipleZipsInLine &&
+          (/(?:อำเภอ|อ\.|จังหวัด|จ\.|ตำบล|ต\.|โทร|หมู่|ม\.)/.test(trimmed) ||
+            (/\d{5}/.test(normalized) && /[^\d\s,;]/.test(normalized)));
+
+        if (looksLikeFullAddress) {
+          entries.push(trimmed);
+          return;
+        }
+
+        // แยกด้วยจุลภาค อัฒภาค หรือช่องว่าง
+        const parts = trimmed.split(/[,;\s]+/).filter(Boolean);
+        parts.forEach((p) => entries.push(p));
+      });
+
+      return entries;
+    }
+
+    function runBulkCheck() {
+      const entries = parseBulkEntries(bulkTextarea.value);
+      if (entries.length === 0) {
+        showToast('กรุณาวางรายการที่ต้องการตรวจสอบก่อน', 'error');
+        bulkTextarea.focus();
+        return;
+      }
+
+      let surchargeCount = 0;
+      let normalCount = 0;
+      let incompleteCount = 0;
+      let totalFee = 0;
+
+      const evaluated = entries.map((entry, idx) => {
+        const res = analyzeQuery(entry);
+        if (res.status === 'surcharge') {
+          surchargeCount++;
+          totalFee += 50;
+          return { index: idx + 1, input: entry, status: 'surcharge', fee: 50, analysis: res };
+        }
+        if (res.status === 'typing') {
+          incompleteCount++;
+          return { index: idx + 1, input: entry, status: 'incomplete', fee: 0, analysis: res };
+        }
+        normalCount++;
+        return { index: idx + 1, input: entry, status: 'normal', fee: 0, analysis: res };
+      });
+
+      // อัปเดตแถบสรุป 4 ช่อง
+      bulkSummaryGrid.innerHTML = `
+        <div class="rounded-xl bg-white border border-gray-200 px-2.5 py-2 text-center">
+          <p class="text-[10px] text-gray-500 font-medium">ทั้งหมด</p>
+          <p class="font-mono text-base font-bold text-gray-900">${evaluated.length}</p>
+        </div>
+        <div class="rounded-xl bg-red-50 border border-red-200 px-2.5 py-2 text-center">
+          <p class="text-[10px] text-red-600 font-medium">คิดเพิ่ม +50</p>
+          <p class="font-mono text-base font-bold text-red-700">${surchargeCount}</p>
+        </div>
+        <div class="rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-2 text-center">
+          <p class="text-[10px] text-emerald-700 font-medium">พื้นที่ปกติ</p>
+          <p class="font-mono text-base font-bold text-emerald-700">${normalCount}</p>
+        </div>
+        <div class="rounded-xl bg-gradient-to-r from-[#DC2626] to-[#EA580C] text-white px-2.5 py-2 text-center shadow-xs">
+          <p class="text-[10px] text-red-100 font-medium">รวมค่าเพิ่ม</p>
+          <p class="font-mono text-base font-bold">+${totalFee.toLocaleString('th-TH')}฿</p>
+        </div>
+      `;
+      bulkSummaryBar.classList.remove('hidden');
+
+      // สร้างข้อความสำหรับคัดลอกสรุปผล และ HTML รายการ
+      const summaryLines = [
+        'สรุปผลการตรวจสอบพื้นที่จัดส่งพิเศษ (Flash Express - ร้านค้าสวัสดิการ กรมส่งเสริมการเกษตร)',
+        `ทั้งหมด: ${evaluated.length} รายการ | คิดค่าส่งเพิ่ม: ${surchargeCount} | ปกติ: ${normalCount}${incompleteCount > 0 ? ` | ข้อมูลไม่ครบ: ${incompleteCount}` : ''}`,
+        `รวมค่าส่งเพิ่มทั้งหมด: +${totalFee.toLocaleString('th-TH')} บาท`,
+        '----------------------------------------',
+      ];
+
+      bulkListContainer.innerHTML = evaluated.map((row) => {
+        if (row.status === 'surcharge') {
+          const first = row.analysis.matches[0];
+          const allText = row.analysis.matches
+            .map((m) => `${m.zip} อ.${m.district} จ.${m.province}`)
+            .join(' / ');
+          summaryLines.push(`${row.index}. ${row.input} => +50 บาท (${allText})`);
+
+          return `
+            <div
+              data-bulk-area-id="${escapeHTML(first.id)}"
+              class="bulk-surcharge-row rounded-xl border border-red-200 bg-red-50/40 hover:bg-red-50 p-2.5 transition cursor-pointer"
+              title="คลิกเพื่อดูรายละเอียดและคัดลอกข้อความแจ้งลูกค้า"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-[11px] font-semibold text-gray-400">#${row.index}</span>
+                    <span class="text-xs sm:text-sm font-bold text-gray-900 truncate">${escapeHTML(row.input)}</span>
+                  </div>
+                  <p class="text-[11px] text-gray-600 mt-0.5 truncate">
+                    ${escapeHTML(allText)}
+                  </p>
+                  <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                    ${renderCategoryBadges(first, true)}
+                    <span class="text-[10px]">${renderMetaInfo(first)}</span>
+                  </div>
+                </div>
+                <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-[#DC2626] text-white">
+                  +50฿
+                </span>
+              </div>
+            </div>
+          `;
+        }
+
+        if (row.status === 'incomplete') {
+          summaryLines.push(`${row.index}. ${row.input} => ข้อมูลไม่ครบ (ระบุรหัส 5 หลัก)`);
+          return `
+            <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-2.5 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[11px] font-semibold text-gray-400">#${row.index}</span>
+                  <span class="text-xs sm:text-sm font-semibold text-gray-900 truncate">${escapeHTML(row.input)}</span>
+                </div>
+                <p class="text-[11px] text-amber-800 mt-0.5">กรุณาระบุรหัสไปรษณีย์ให้ครบ 5 หลัก</p>
+              </div>
+              <span class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-amber-200 text-amber-900">
+                ไม่ครบ
+              </span>
+            </div>
+          `;
+        }
+
+        const zipLabel = row.analysis.extractedZip ? ` (รหัส ${row.analysis.extractedZip})` : '';
+        summaryLines.push(`${row.index}. ${row.input} => พื้นที่ปกติ 0 บาท`);
+        return `
+          <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/30 p-2.5 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-[11px] font-semibold text-gray-400">#${row.index}</span>
+                <span class="text-xs sm:text-sm font-semibold text-gray-900 truncate">${escapeHTML(row.input)}</span>
+              </div>
+              <p class="text-[11px] text-emerald-700 mt-0.5">พื้นที่ปกติ${escapeHTML(zipLabel)} — ไม่มีค่าส่งเพิ่ม</p>
+            </div>
+            <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-[#059669] text-white">
+              ปกติ 0฿
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      state.latestBulkSummaryText = summaryLines.join('\n');
+      bulkCopyBtn.classList.remove('hidden');
+      bulkCopyBtn.classList.add('inline-flex');
+
+      // คลิกแถวพื้นที่พิเศษในผลลัพธ์ Bulk เพื่อเปิดดูและคัดลอกข้อความแจ้งลูกค้าได้ทันที
+      bulkListContainer.querySelectorAll('.bulk-surcharge-row').forEach((el) => {
+        el.addEventListener('click', () => {
+          selectAreaFromDirectory(el.getAttribute('data-bulk-area-id'));
+        });
+      });
+    }
+
+    bulkCheckBtn.addEventListener('click', runBulkCheck);
+
+    bulkSampleBtn.addEventListener('click', () => {
+      bulkTextarea.value = [
+        '10110',
+        '95110',
+        'คุณสมหญิง อ.เกาะสมุย จ.สุราษฎร์ธานี 84320 โทร 089-123-4567',
+        '82110',
+        '50000',
+        'คุณมานะ ต.เกาะช้าง จ.ตราด 23170 โทร 0812345678',
+      ].join('\n');
+      runBulkCheck();
+    });
+
+    bulkClearBtn.addEventListener('click', () => {
+      bulkTextarea.value = '';
+      bulkSummaryBar.classList.add('hidden');
+      bulkCopyBtn.classList.add('hidden');
+      bulkCopyBtn.classList.remove('inline-flex');
+      state.latestBulkSummaryText = '';
+      bulkListContainer.innerHTML = `
+        <div class="h-full flex flex-col items-center justify-center text-center py-6 px-4">
+          <p class="text-sm font-semibold text-gray-600">ล้างข้อมูลเรียบร้อยแล้ว</p>
+          <p class="text-xs text-gray-400 mt-1">วางรายการใหม่ด้านบนแล้วกด "ตรวจสอบทั้งหมด"</p>
+        </div>
+      `;
+      bulkTextarea.focus();
+    });
+
+    bulkCopyBtn.addEventListener('click', () => {
+      if (state.latestBulkSummaryText) {
+        copyToClipboard(state.latestBulkSummaryText, 'คัดลอกสรุปผลการตรวจสอบทั้งหมดแล้ว');
+      }
+    });
+
+    /**
+     * =========================================================================
+     * 7. ตารางรายชื่อพื้นที่พิเศษทั้งหมด (คอลัมน์ขวา + Interactive 2-Way Sync)
+     * =========================================================================
+     */
+    const dirTypeBtns = document.querySelectorAll('.dir-type-btn');
+    const dirProvinceSelect = document.getElementById('dir-province-select');
+    const dirShowingCount = document.getElementById('dir-showing-count');
+    const dirSyncBanner = document.getElementById('dir-sync-banner');
+    const dirSyncText = document.getElementById('dir-sync-text');
+    const dirShowAllBtn = document.getElementById('dir-show-all-btn');
+    const dirTableBody = document.getElementById('dir-table-body');
+    const dirEmptyState = document.getElementById('dir-empty-state');
+    const dirResetFiltersBtn = document.getElementById('dir-reset-filters-btn');
+
+    function populateProvinceDropdown() {
+      ALL_PROVINCES.forEach((prov) => {
+        const opt = document.createElement('option');
+        opt.value = prov;
+        opt.textContent = `จ.${prov}`;
+        dirProvinceSelect.appendChild(opt);
+      });
+    }
+
+    function renderDirectory() {
+      const analysis = analyzeQuery(state.searchQuery);
+      const hasSearchMatches = !state.dirSyncOverride && analysis.matches.length > 0 && state.searchQuery.trim().length > 0;
+      const matchedIdSet = new Set(analysis.matches.map((m) => m.id));
+
+      // แสดงแถบ Sync Banner เมื่อมีการพิมพ์ค้นหาด้านซ้ายและยังไม่กด "แสดงทั้งหมด"
+      if (hasSearchMatches) {
+        dirSyncBanner.classList.remove('hidden');
+        dirSyncBanner.classList.add('flex');
+        const label = analysis.extractedZip ? `รหัส ${analysis.extractedZip}` : `"${state.searchQuery.trim()}"`;
+        dirSyncText.innerHTML = `เชื่อมโยงกับคำค้นหา <strong>${escapeHTML(label)}</strong> (พบ ${analysis.matches.length} พื้นที่)`;
+      } else if (!state.dirSyncOverride && state.searchQuery.trim().length > 0 && analysis.status === 'normal') {
+        dirSyncBanner.classList.remove('hidden');
+        dirSyncBanner.classList.add('flex');
+        const label = analysis.extractedZip ? `รหัส ${analysis.extractedZip}` : `"${state.searchQuery.trim()}"`;
+        dirSyncText.innerHTML = `ไม่พบ <strong>${escapeHTML(label)}</strong> ในรายการพิเศษ — แสดงตารางทั้งหมดเพื่อใช้อ้างอิง`;
+      } else {
+        dirSyncBanner.classList.add('hidden');
+        dirSyncBanner.classList.remove('flex');
+      }
+
+      // กรองข้อมูลตามแท็บประเภท, จังหวัด และคำค้นหา (ถ้าซิงก์อยู่และพบผลลัพธ์)
+      const filtered = ALL_AREAS.filter((area) => {
+        if (state.dirType === 'remote' && !area.remote) return false;
+        if (state.dirType === 'tourist' && !area.tourist) return false;
+        if (state.dirProvince !== 'all' && area.province !== state.dirProvince) return false;
+        if (hasSearchMatches && !matchedIdSet.has(area.id)) return false;
+        return true;
+      });
+
+      dirShowingCount.textContent = String(filtered.length);
+
+      if (filtered.length === 0) {
+        dirTableBody.innerHTML = '';
+        dirEmptyState.classList.remove('hidden');
+        return;
+      }
+
+      dirEmptyState.classList.add('hidden');
+
+      dirTableBody.innerHTML = filtered.map((area) => {
+        const isSelected = state.selectedAreaId === area.id;
+        const isHighlighted = hasSearchMatches && matchedIdSet.has(area.id);
+        const rowBg = isSelected
+          ? 'bg-[#FFD400]/25 hover:bg-[#FFD400]/30'
+          : isHighlighted
+            ? 'bg-red-50/50 hover:bg-red-50'
+            : 'hover:bg-gray-50';
+
+        const aliasHint = area.aliases.includes('สบเมย')
+          ? ' <span class="text-[11px] text-gray-400">(สบเมย)</span>'
+          : '';
+
+        return `
+          <tr
+            data-area-id="${escapeHTML(area.id)}"
+            class="dir-row ${rowBg} transition-colors cursor-pointer group"
+          >
+            <td class="py-2.5 pl-4 pr-2 align-middle">
+              <span class="font-mono font-bold text-xs sm:text-sm ${isSelected ? 'text-[#111827] bg-[#FFD400] px-1.5 py-0.5 rounded-md' : 'text-gray-900 group-hover:text-black'}">
+                ${escapeHTML(area.zip)}
+              </span>
+            </td>
+            <td class="py-2.5 px-2 align-middle">
+              <div class="font-semibold text-gray-900 leading-snug">
+                ${escapeHTML(area.district)}${aliasHint}
+              </div>
+              <div class="text-[11px] text-gray-500 flex flex-wrap items-center gap-1.5 mt-0.5">
+                <span>จ.${escapeHTML(area.province)}</span>
+                <span class="sm:hidden">${renderCategoryBadges(area, true)}</span>
+              </div>
+            </td>
+            <td class="py-2.5 px-2 align-middle hidden sm:table-cell">
+              ${renderCategoryBadges(area, true)}
+            </td>
+            <td class="py-2.5 px-2 align-middle hidden md:table-cell text-xs whitespace-nowrap">
+              ${renderMetaInfo(area)}
+            </td>
+            <td class="py-2.5 pl-2 pr-4 align-middle text-right">
+              <span class="inline-flex items-center font-mono font-bold text-[11px] px-2 py-0.5 rounded-lg bg-red-50 text-red-700 border border-red-200/80">
+                +50฿
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // ผูก Event คลิกที่แถวใดก็ได้เพื่อดึงไปแสดงด้านซ้ายทันที
+      dirTableBody.querySelectorAll('.dir-row').forEach((row) => {
+        row.addEventListener('click', () => {
+          selectAreaFromDirectory(row.getAttribute('data-area-id'));
+        });
+      });
+    }
+
+    // ตัวกรองประเภทพื้นที่
+    dirTypeBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.dirType = btn.getAttribute('data-filter-type');
+        dirTypeBtns.forEach((b) => {
+          const active = b === btn;
+          b.className = active
+            ? 'dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-[#111827] text-[#FFD400] shadow-sm cursor-pointer'
+            : 'dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-600 hover:text-gray-900 cursor-pointer';
+        });
+        renderDirectory();
+      });
+    });
+
+    dirProvinceSelect.addEventListener('change', () => {
+      state.dirProvince = dirProvinceSelect.value;
+      renderDirectory();
+    });
+
+    dirShowAllBtn.addEventListener('click', () => {
+      state.dirSyncOverride = true;
+      renderDirectory();
+    });
+
+    dirResetFiltersBtn.addEventListener('click', () => {
+      state.dirType = 'all';
+      state.dirProvince = 'all';
+      state.dirSyncOverride = true;
+      dirProvinceSelect.value = 'all';
+      dirTypeBtns.forEach((b) => {
+        const isAll = b.getAttribute('data-filter-type') === 'all';
+        b.className = isAll
+          ? 'dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-[#111827] text-[#FFD400] shadow-sm cursor-pointer'
+          : 'dir-type-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-600 hover:text-gray-900 cursor-pointer';
+      });
+      renderDirectory();
+    });
+
+    /**
+     * =========================================================================
+     * 8. ระบบสลับโหมด (Desktop 2 โหมด / Mobile 3 แท็บ จบใน 1 หน้าจอ)
+     * =========================================================================
+     */
+    const deskTabSingle = document.getElementById('desk-tab-single');
+    const deskTabBulk = document.getElementById('desk-tab-bulk');
+    const mobTabSingle = document.getElementById('mob-tab-single');
+    const mobTabBulk = document.getElementById('mob-tab-bulk');
+    const mobTabDirectory = document.getElementById('mob-tab-directory');
+
+    const leftColumn = document.getElementById('left-column');
+    const rightColumn = document.getElementById('right-column');
+    const modeSingle = document.getElementById('mode-single');
+    const modeBulk = document.getElementById('mode-bulk');
+
+    function setActiveView(view) {
+      // view: 'single' | 'bulk' | 'directory'
+      if (view === 'single' || view === 'bulk') {
+        state.desktopMode = view;
+      }
+      state.mobileTab = view;
+
+      // สลับเนื้อหาภายในคอลัมน์ซ้าย (Single vs Bulk)
+      const isSingle = state.desktopMode === 'single';
+      modeSingle.classList.toggle('hidden', !isSingle);
+      modeSingle.classList.toggle('flex', isSingle);
+      modeBulk.classList.toggle('hidden', isSingle);
+      modeBulk.classList.toggle('flex', !isSingle);
+
+      // อัปเดตปุ่ม Segmented Control บนเดสก์ท็อป
+      const activeDeskCls = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-[#FFD400] text-[#111827] shadow-sm cursor-pointer';
+      const inactiveDeskCls = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-300 hover:text-white cursor-pointer';
+      deskTabSingle.className = isSingle ? activeDeskCls : inactiveDeskCls;
+      deskTabBulk.className = !isSingle ? activeDeskCls : inactiveDeskCls;
+      deskTabSingle.setAttribute('aria-selected', String(isSingle));
+      deskTabBulk.setAttribute('aria-selected', String(!isSingle));
+
+      // สลับคอลัมน์บนมือถือ (< lg) ส่วนบน lg+ แสดงทั้ง 2 คอลัมน์ตลอดเวลา
+      const showDirMobile = state.mobileTab === 'directory';
+      if (showDirMobile) {
+        leftColumn.classList.add('hidden', 'lg:flex');
+        leftColumn.classList.remove('flex');
+        rightColumn.classList.remove('hidden');
+        rightColumn.classList.add('flex');
+      } else {
+        leftColumn.classList.remove('hidden');
+        leftColumn.classList.add('flex');
+        rightColumn.classList.add('hidden', 'lg:flex');
+        rightColumn.classList.remove('flex');
+      }
+
+      // อัปเดตปุ่มแท็บบนมือถือ
+      const activeMobCls = 'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all bg-[#FFD400] text-[#111827] shadow-sm cursor-pointer';
+      const inactiveMobCls = 'flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all text-gray-300 hover:text-white cursor-pointer';
+
+      mobTabSingle.className = state.mobileTab === 'single' ? activeMobCls : inactiveMobCls;
+      mobTabBulk.className = state.mobileTab === 'bulk' ? activeMobCls : inactiveMobCls;
+      mobTabDirectory.className = state.mobileTab === 'directory' ? activeMobCls : inactiveMobCls;
+
+      mobTabSingle.setAttribute('aria-selected', String(state.mobileTab === 'single'));
+      mobTabBulk.setAttribute('aria-selected', String(state.mobileTab === 'bulk'));
+      mobTabDirectory.setAttribute('aria-selected', String(state.mobileTab === 'directory'));
+    }
+
+    deskTabSingle.addEventListener('click', () => {
+      setActiveView('single');
+      singleInput.focus();
+    });
+    deskTabBulk.addEventListener('click', () => {
+      setActiveView('bulk');
+      bulkTextarea.focus();
+    });
+
+    mobTabSingle.addEventListener('click', () => setActiveView('single'));
+    mobTabBulk.addEventListener('click', () => setActiveView('bulk'));
+    mobTabDirectory.addEventListener('click', () => setActiveView('directory'));
+
+    /**
+     * =========================================================================
+     * 9. คีย์ลัดคีย์บอร์ด (Keyboard Shortcuts: '/' โฟกัสค้นหา, 'Esc' ล้าง)
+     * =========================================================================
+     */
+    document.addEventListener('keydown', (e) => {
+      const tag = document.activeElement ? document.activeElement.tagName : '';
+      const isTypingField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+      if (e.key === '/' && !isTypingField) {
+        e.preventDefault();
+        setActiveView('single');
+        singleInput.focus();
+        singleInput.select();
+      } else if (e.key === 'Escape' && state.desktopMode === 'single') {
+        if (state.searchQuery || state.selectedAreaId) {
+          e.preventDefault();
+          clearSingleSearch();
+        }
+      }
+    });
+
+    /**
+     * =========================================================================
+     * 10. เริ่มต้นระบบ (Initialization)
+     * =========================================================================
+     */
+    function initApp() {
+      try {
+        const remoteCount = ALL_AREAS.filter((a) => a.remote).length;
+        const touristCount = ALL_AREAS.filter((a) => a.tourist).length;
+        const uniqueCount = ALL_AREAS.length;
+
+        document.getElementById('hdr-remote-count').textContent = String(remoteCount);
+        document.getElementById('hdr-tourist-count').textContent = String(touristCount);
+        document.getElementById('mob-dir-count').textContent = String(uniqueCount);
+        document.getElementById('dir-cnt-all').textContent = `(${uniqueCount})`;
+        document.getElementById('dir-cnt-remote').textContent = `(${remoteCount})`;
+        document.getElementById('dir-cnt-tourist').textContent = `(${touristCount})`;
+
+        loadHistory();
+        populateProvinceDropdown();
+        setActiveView('single');
+        renderSingleStage();
+        renderDirectory();
+      } catch (err) {
+        console.error('App init error:', err);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
